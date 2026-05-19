@@ -12,8 +12,6 @@ export const X_MAX = 3
 export const Y_MIN = -1
 export const Y_MAX = 1
 
-export const API_BASE = import.meta.env.VITE_API_BASE ?? ''
-
 export type FieldKey =
   | 'mach'
   | 'pressure'

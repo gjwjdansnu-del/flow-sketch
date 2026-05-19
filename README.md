@@ -28,12 +28,17 @@ Open the Vite URL (default port 5173). The dev server proxies `/predict` and `/h
 | Frontend | [GitHub Pages](https://pages.github.com/) (`main` branch workflow) |
 | API | [Render](https://render.com/) (`render.yaml` blueprint) |
 
-1. Push to GitHub — Pages deploys automatically.
-2. In Render: **New → Blueprint** → connect this repo → deploy `flow-sketch-api`.
-3. In GitHub repo **Settings → Secrets and variables → Actions → Variables**, set:
-   - `VITE_API_BASE` = `https://<your-render-service>.onrender.com` (no trailing slash)
+**`Failed to fetch` on the live site means the Render API is missing or down.** Pages alone cannot run inference.
 
-Live UI: `https://<user>.github.io/flow-sketch/`
+### Checklist
+
+1. **Deploy Render backend first** — Dashboard → New → Blueprint → this repo → `flow-sketch-api`
+2. **Open** `https://flow-sketch-api.onrender.com/health` — must return `"model_loaded": true`
+3. **Set GitHub Actions variable** `VITE_API_BASE` = `https://flow-sketch-api.onrender.com` (no trailing slash)
+4. **Re-run** workflow **Deploy GitHub Pages**
+5. Open https://podobooks-ganghwa.github.io/flow-sketch/ and test Predict
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for details and troubleshooting.
 
 ## Training data (local)
 

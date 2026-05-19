@@ -1,4 +1,10 @@
-import { API_BASE, type FieldKey, type PredictResponse } from './lib/constants'
+import {
+  API_BASE,
+  apiUrl,
+  formatFetchError,
+  isApiBaseConfigured,
+} from './lib/apiConfig'
+import { type FieldKey, type PredictResponse } from './lib/constants'
 
 export type PredictRequest = {
   solid_mask: number[][]
@@ -7,29 +13,52 @@ export type PredictRequest = {
   aoa?: number
 }
 
+export { API_BASE, isApiBaseConfigured }
+
 export async function predictFlow(
   payload: PredictRequest,
 ): Promise<PredictResponse> {
-  const response = await fetch(`${API_BASE}/predict`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
-
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(text || `Predict failed (${response.status})`)
+  let url: string
+  try {
+    url = apiUrl('/predict')
+  } catch (configError) {
+    throw configError
   }
 
-  return (await response.json()) as PredictResponse
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text || `Predict failed (${response.status})`)
+    }
+
+    return (await response.json()) as PredictResponse
+  } catch (error) {
+    throw new Error(formatFetchError(error, '/predict'))
+  }
 }
 
 export async function fetchHealth(): Promise<Record<string, unknown>> {
-  const response = await fetch(`${API_BASE}/health`)
-  if (!response.ok) {
-    throw new Error(`Health check failed (${response.status})`)
+  if (!isApiBaseConfigured()) {
+    throw new Error(
+      'API backend URL is not configured. Set VITE_API_BASE and redeploy GitHub Pages.',
+    )
   }
-  return (await response.json()) as Record<string, unknown>
+
+  try {
+    const response = await fetch(apiUrl('/health'))
+    if (!response.ok) {
+      throw new Error(`Health check failed (${response.status})`)
+    }
+    return (await response.json()) as Record<string, unknown>
+  } catch (error) {
+    throw new Error(formatFetchError(error, '/health'))
+  }
 }
 
 export function pickField(

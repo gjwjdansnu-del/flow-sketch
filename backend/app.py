@@ -125,10 +125,16 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="flow_sketch inference", lifespan=lifespan)
 
-_cors_origins = os.environ.get(
-    "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174",
-).split(",")
+_default_cors = ",".join(
+    [
+        "https://podobooks-ganghwa.github.io",
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+    ]
+)
+_cors_origins = os.environ.get("CORS_ORIGINS", _default_cors).split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in _cors_origins if origin.strip()],

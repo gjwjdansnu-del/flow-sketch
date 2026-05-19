@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchHealth, predictFlow } from './api'
+import { fetchHealth, isApiBaseConfigured, predictFlow } from './api'
+import { API_BASE } from './lib/apiConfig'
 import {
   FIELD_OPTIONS,
   type FieldKey,
@@ -51,6 +52,7 @@ function App() {
   const [shapeDirty, setShapeDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [health, setHealth] = useState<string>('checking...')
+  const [apiReady, setApiReady] = useState(false)
 
   const disableAutoUpdate = useCallback(() => {
     autoUpdateEnabledRef.current = false
@@ -187,19 +189,36 @@ function App() {
   }, [redrawResultCanvas])
 
   useEffect(() => {
+    if (!isApiBaseConfigured()) {
+      setHealth('API backend URL is not configured (VITE_API_BASE).')
+      setApiReady(false)
+      return
+    }
+
     fetchHealth()
       .then((payload) => {
         const device = String(payload.device ?? 'unknown device')
         const channels = payload.input_channels
         const modelType = payload.model_type
+        const loaded = payload.model_loaded === true
+        setApiReady(loaded)
         if (channels !== undefined && modelType !== undefined) {
-          setHealth(`ok (${modelType}, ${channels}ch, ${device})`)
+          setHealth(
+            loaded
+              ? `ok (${modelType}, ${channels}ch, ${device})`
+              : `API up but model not loaded (${device})`,
+          )
         } else {
-          setHealth(`ok (${device})`)
+          setHealth(loaded ? `ok (${device})` : `API up but model not loaded`)
         }
       })
-      .catch(() => {
-        setHealth('backend unreachable')
+      .catch((healthError) => {
+        setApiReady(false)
+        const message =
+          healthError instanceof Error
+            ? healthError.message
+            : 'Backend unreachable.'
+        setHealth(message)
       })
   }, [])
 
@@ -445,7 +464,7 @@ function App() {
             <button
               type="button"
               onClick={handlePredict}
-              disabled={inFlight && !autoUpdateEnabled}
+              disabled={(!apiReady && !import.meta.env.DEV) || (inFlight && !autoUpdateEnabled)}
             >
               {inFlight && !autoUpdateEnabled ? 'Predicting...' : 'Predict'}
             </button>
@@ -530,6 +549,9 @@ function App() {
         </p>
         <p className="footer-meta">
           Input shape is centered and scaled. AoA is represented by body rotation.
+          {import.meta.env.PROD && API_BASE && (
+            <> API: {API_BASE}. </>
+          )}
           Backend: {health}.
           {autoUpdateEnabled && ' Mach/AoA changes auto-update after the first predict.'}
           {shapeDirty && prediction && ' Shape changed — click Predict to refresh.'}
