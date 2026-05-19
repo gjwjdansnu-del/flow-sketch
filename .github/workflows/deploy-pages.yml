@@ -30,8 +30,6 @@ jobs:
         working-directory: frontend
         env:
           GITHUB_PAGES: "true"
-          # Override in repo Settings → Actions → Variables (VITE_API_BASE)
-          VITE_API_BASE: ${{ vars.VITE_API_BASE || 'https://flow-sketch-api.onrender.com' }}
         run: |
           npm ci
           npm run build

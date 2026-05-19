@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchHealth, isApiBaseConfigured, predictFlow } from './api'
-import { API_BASE } from './lib/apiConfig'
+import { predictFlow } from './api'
+import { getModelLoadStatus } from './lib/onnxInference'
 import {
   FIELD_OPTIONS,
   type FieldKey,
@@ -51,8 +51,9 @@ function App() {
   const [autoUpdateEnabled, setAutoUpdateEnabled] = useState(false)
   const [shapeDirty, setShapeDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [health, setHealth] = useState<string>('checking...')
-  const [apiReady, setApiReady] = useState(false)
+  const [modelStatus, setModelStatus] = useState<
+    'idle' | 'loading' | 'loaded' | 'error'
+  >('idle')
 
   const disableAutoUpdate = useCallback(() => {
     autoUpdateEnabledRef.current = false
@@ -116,8 +117,12 @@ function App() {
       options?: { enableAutoAfter?: boolean },
     ) => {
       const requestId = ++predictRequestIdRef.current
+      const wasLoaded = getModelLoadStatus() === 'loaded'
       setInFlight(true)
       setError(null)
+      if (!wasLoaded) {
+        setModelStatus('loading')
+      }
 
       try {
         const response = await predictFlow({
@@ -132,6 +137,7 @@ function App() {
         setPrediction(response)
         setSolidMask(mask)
         solidMaskRef.current = mask
+        setModelStatus('loaded')
 
         if (options?.enableAutoAfter) {
           autoUpdateEnabledRef.current = true
@@ -147,6 +153,9 @@ function App() {
             ? predictError.message
             : 'Prediction failed.'
         setError(message)
+        if (getModelLoadStatus() === 'error') {
+          setModelStatus('error')
+        }
       } finally {
         if (requestId === predictRequestIdRef.current) {
           setInFlight(false)
@@ -187,40 +196,6 @@ function App() {
   useEffect(() => {
     redrawResultCanvas()
   }, [redrawResultCanvas])
-
-  useEffect(() => {
-    if (!isApiBaseConfigured()) {
-      setHealth('API backend URL is not configured (VITE_API_BASE).')
-      setApiReady(false)
-      return
-    }
-
-    fetchHealth()
-      .then((payload) => {
-        const device = String(payload.device ?? 'unknown device')
-        const channels = payload.input_channels
-        const modelType = payload.model_type
-        const loaded = payload.model_loaded === true
-        setApiReady(loaded)
-        if (channels !== undefined && modelType !== undefined) {
-          setHealth(
-            loaded
-              ? `ok (${modelType}, ${channels}ch, ${device})`
-              : `API up but model not loaded (${device})`,
-          )
-        } else {
-          setHealth(loaded ? `ok (${device})` : `API up but model not loaded`)
-        }
-      })
-      .catch((healthError) => {
-        setApiReady(false)
-        const message =
-          healthError instanceof Error
-            ? healthError.message
-            : 'Backend unreachable.'
-        setHealth(message)
-      })
-  }, [])
 
   useEffect(() => {
     if (!autoUpdateEnabledRef.current || !normalizedPolygonRef.current) {
@@ -464,9 +439,13 @@ function App() {
             <button
               type="button"
               onClick={handlePredict}
-              disabled={(!apiReady && !import.meta.env.DEV) || (inFlight && !autoUpdateEnabled)}
+              disabled={inFlight && !autoUpdateEnabled}
             >
-              {inFlight && !autoUpdateEnabled ? 'Predicting...' : 'Predict'}
+              {inFlight && !autoUpdateEnabled
+                ? modelStatus === 'loading'
+                  ? 'Loading model...'
+                  : 'Predicting...'
+                : 'Predict'}
             </button>
             <button type="button" onClick={handleClear}>
               Clear
@@ -549,10 +528,13 @@ function App() {
         </p>
         <p className="footer-meta">
           Input shape is centered and scaled. AoA is represented by body rotation.
-          {import.meta.env.PROD && API_BASE && (
-            <> API: {API_BASE}. </>
-          )}
-          Backend: {health}.
+          {' '}
+          Model: browser inference.
+          {modelStatus === 'idle' && ' Model loads on first prediction.'}
+          {modelStatus === 'loading' && ' Downloading AI model...'}
+          {modelStatus === 'loaded' && ' Model loaded locally.'}
+          {modelStatus === 'error' &&
+            ' Browser model failed to load. Please refresh or check network.'}
           {autoUpdateEnabled && ' Mach/AoA changes auto-update after the first predict.'}
           {shapeDirty && prediction && ' Shape changed — click Predict to refresh.'}
         </p>
