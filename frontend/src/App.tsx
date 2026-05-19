@@ -411,7 +411,7 @@ function App() {
     <div className="app">
       <header className="site-header">
         <h1>
-          FlowSketch
+          DrawSupersonic
           <span className="version">ver 1</span>
         </h1>
         <p className="subtitle">

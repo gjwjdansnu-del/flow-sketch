@@ -5,7 +5,7 @@ GitHub Pages serves **only the frontend**. Predict requires a separate API (Rend
 ## 1. Deploy Render backend first
 
 1. Open https://dashboard.render.com → **New → Blueprint**
-2. Connect repository `podobooks-ganghwa/flow-sketch`
+2. Connect repository `gjwjdansnu-del/flow-sketch`
 3. Apply `render.yaml` (service name: `flow-sketch-api`)
 4. Wait until deploy status is **Live** (first build may take 10–15 min because of PyTorch)
 
@@ -40,13 +40,13 @@ If you see `Not Found`, the backend is **not deployed yet** — GitHub Pages wil
 
 ## 4. Verify the live site
 
-- Frontend: https://podobooks-ganghwa.github.io/flow-sketch/
+- Frontend: https://gjwjdansnu-del.github.io/flow-sketch/
 - Footer should show `API: https://flow-sketch-api.onrender.com` and `Backend: ok (...)`
 - Draw a shape → **Predict**
 
 ## CORS
 
-The API allows `https://podobooks-ganghwa.github.io` and local Vite ports. Override with env `CORS_ORIGINS` on Render if needed.
+The API allows `https://gjwjdansnu-del.github.io` and local Vite ports. Override with env `CORS_ORIGINS` on Render if needed.
 
 ## Troubleshooting `Failed to fetch`
 

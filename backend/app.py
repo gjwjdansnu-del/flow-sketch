@@ -127,6 +127,7 @@ app = FastAPI(title="flow_sketch inference", lifespan=lifespan)
 
 _default_cors = ",".join(
     [
+        "https://gjwjdansnu-del.github.io",
         "https://podobooks-ganghwa.github.io",
         "http://localhost:5173",
         "http://localhost:5174",

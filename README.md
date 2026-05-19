@@ -36,7 +36,7 @@ Open the Vite URL (default port 5173). The dev server proxies `/predict` and `/h
 2. **Open** `https://flow-sketch-api.onrender.com/health` — must return `"model_loaded": true`
 3. **Set GitHub Actions variable** `VITE_API_BASE` = `https://flow-sketch-api.onrender.com` (no trailing slash)
 4. **Re-run** workflow **Deploy GitHub Pages**
-5. Open https://podobooks-ganghwa.github.io/flow-sketch/ and test Predict
+5. Open https://gjwjdansnu-del.github.io/flow-sketch/ and test Predict
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) for details and troubleshooting.
 

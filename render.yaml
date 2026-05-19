@@ -11,4 +11,4 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: CORS_ORIGINS
-        value: https://podobooks-ganghwa.github.io,http://localhost:5173,http://localhost:5174
+        value: https://gjwjdansnu-del.github.io,http://localhost:5173,http://localhost:5174
