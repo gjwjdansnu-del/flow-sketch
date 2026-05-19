@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.env.*
+
+# Large datasets and CFD outputs (keep local only)
+datasets/
+*.log
+overnight_*
+
+# Checkpoints — site model only (for deployment)
+checkpoints/*
+!checkpoints/unet_site.pt
+!checkpoints/unet_site_stats.json
+
+# Node / frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+.cursor/
+
+# SU2 / local tooling
+third_party/
