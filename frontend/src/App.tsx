@@ -27,6 +27,13 @@ import './App.css'
 
 const DEBOUNCE_MS = 150
 
+const WORKFLOW_STEPS = [
+  'Draw a 2D body shape, or choose a preset.',
+  'Click Predict.',
+  'Select Mach, Pressure, Density, Temperature, or Shock to inspect the predicted field.',
+  'Adjust Mach number and AoA to observe real-time changes.',
+] as const
+
 function App() {
   const drawCanvasRef = useRef<HTMLCanvasElement>(null)
   const resultCanvasRef = useRef<HTMLCanvasElement>(null)
@@ -382,6 +389,26 @@ function App() {
     await runPredict(mask, mach, { enableAutoAfter: true })
   }
 
+  const modelNotice =
+    modelStatus === 'error' ? (
+      <p className="model-notice model-notice--error" role="status">
+        Browser model failed to load. Please refresh or check network.
+      </p>
+    ) : modelStatus === 'loading' ? (
+      <p className="model-notice" role="status">
+        Downloading AI model…
+      </p>
+    ) : modelStatus === 'loaded' ? (
+      <p className="model-notice" role="status">
+        Model loaded locally.
+      </p>
+    ) : (
+      <p className="model-notice" role="status">
+        First prediction may take a few seconds while the AI model downloads.
+        After that, predictions run locally in your browser.
+      </p>
+    )
+
   return (
     <div className="app">
       <header className="site-header">
@@ -392,9 +419,88 @@ function App() {
         <p className="subtitle">
           Draw a 2D body and preview a real-time AI flow surrogate.
         </p>
+        <ol className="workflow-guide" aria-label="How to use DrawSupersonic">
+          {WORKFLOW_STEPS.map((text, index) => (
+            <li key={text}>
+              <span className="workflow-step-label">Step {index + 1}.</span> {text}
+            </li>
+          ))}
+        </ol>
       </header>
 
-      <section className="controls-card" aria-label="Flow controls">
+      <section className="section-card shape-section" aria-label="Body shape">
+        <div className="section-heading">
+          <h2>Body shape</h2>
+          <p className="section-hint">
+            Click or drag points; double-click or click near the start point to close.
+          </p>
+        </div>
+        <div className="presets">
+          <span className="presets-label">Presets</span>
+          <div className="preset-buttons" role="group" aria-label="Shape presets">
+            {PRESET_OPTIONS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="preset-button"
+                onClick={() => handleLoadPreset(preset.id)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="canvas-stage">
+          <canvas
+            ref={drawCanvasRef}
+            width={512}
+            height={256}
+            className="canvas"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseLeave}
+            onDoubleClick={handleDoubleClick}
+          />
+        </div>
+        <div className="shape-actions">
+          <button type="button" className="secondary-button" onClick={handleClear}>
+            Clear
+          </button>
+        </div>
+      </section>
+
+      <section
+        className="section-card predict-section"
+        aria-label="Prediction controls"
+      >
+        <div className="section-heading">
+          <h2>Predict flow</h2>
+        </div>
+        <div className="predict-row">
+          <button
+            type="button"
+            className="primary-button"
+            onClick={handlePredict}
+            disabled={inFlight && !autoUpdateEnabled}
+          >
+            {inFlight && !autoUpdateEnabled
+              ? modelStatus === 'loading'
+                ? 'Loading model...'
+                : 'Predicting...'
+              : 'Predict'}
+          </button>
+          {modelNotice}
+        </div>
+        {(autoUpdateEnabled || (shapeDirty && prediction)) && (
+          <p className="session-hint">
+            {autoUpdateEnabled &&
+              'Mach and AoA update the field automatically after the first predict.'}
+            {shapeDirty &&
+              prediction &&
+              ' Shape changed — click Predict to refresh.'}
+          </p>
+        )}
         <div className="sliders-row">
           <label>
             Mach: {mach.toFixed(1)}
@@ -419,124 +525,54 @@ function App() {
             />
           </label>
         </div>
-
-        <div className="controls-toolbar">
-          <div className="field-buttons" role="group" aria-label="Field selector">
-            {FIELD_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                className={selectedField === option.key ? 'active' : ''}
-                onClick={() => setSelectedField(option.key)}
-                disabled={!prediction}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="actions">
-            <button
-              type="button"
-              onClick={handlePredict}
-              disabled={inFlight && !autoUpdateEnabled}
-            >
-              {inFlight && !autoUpdateEnabled
-                ? modelStatus === 'loading'
-                  ? 'Loading model...'
-                  : 'Predicting...'
-                : 'Predict'}
-            </button>
-            <button type="button" onClick={handleClear}>
-              Clear
-            </button>
-          </div>
-        </div>
-
         {error && <p className="error">{error}</p>}
       </section>
 
-      <section className="canvases">
-        <article className="panel-card">
-          <h2>Body sketch</h2>
-          <p className="panel-hint">
-            Click or drag points; double-click or click near start to close.
-          </p>
-          <div className="presets">
-            <span className="presets-label">Presets</span>
-            <div className="preset-buttons">
-              {PRESET_OPTIONS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className="preset-button"
-                  onClick={() => handleLoadPreset(preset.id)}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="canvas-wrap">
-            <canvas
-              ref={drawCanvasRef}
-              width={512}
-              height={256}
-              className="canvas"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              onDoubleClick={handleDoubleClick}
-            />
-          </div>
-        </article>
-
-        <article className="panel-card">
+      <section
+        className="section-card field-section"
+        aria-label="Predicted field visualization"
+      >
+        <div className="section-heading">
           <h2>Predicted field</h2>
-          <p className="panel-hint">
-            Scalar field with body overlay (rotated coordinates).
+          <p className="section-hint">
+            Scalar field with body overlay in rotated coordinates.
           </p>
-          <div className="field-preview">
-            <canvas
-              ref={resultCanvasRef}
-              width={512}
-              height={256}
-              className="canvas field-canvas"
-            />
-            <canvas
-              ref={colorbarCanvasRef}
-              width={COLORBAR_WIDTH}
-              height={COLORBAR_HEIGHT}
-              className="colorbar-canvas"
-              aria-label="Field value colorbar"
-            />
-          </div>
-        </article>
+        </div>
+        <div className="field-buttons" role="group" aria-label="Field selector">
+          {FIELD_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              className={selectedField === option.key ? 'active' : ''}
+              onClick={() => setSelectedField(option.key)}
+              disabled={!prediction}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+        <div className="canvas-stage field-stage">
+          <canvas
+            ref={resultCanvasRef}
+            width={512}
+            height={256}
+            className="canvas field-canvas"
+          />
+          <canvas
+            ref={colorbarCanvasRef}
+            width={COLORBAR_WIDTH}
+            height={COLORBAR_HEIGHT}
+            className="colorbar-canvas"
+            aria-label="Field value colorbar"
+          />
+        </div>
       </section>
 
       <footer className="site-footer">
-        <p className="footer-meta">
-          Experimental AI surrogate. Not a validated CFD solver. Reynolds effects,
-          subsonic, and transonic regimes are not modeled separately in this version.
-        </p>
-        <p className="footer-ai">
-          Flow fields are predicted by a U-Net trained on SU2 Euler simulations (Mach
-          1.5–5, ±10° AoA). AoA is applied by rotating the body mask; the model maps
-          rotated geometry and Mach to pressure, density, temperature, and shock
-          indicators on a fixed grid.
-        </p>
-        <p className="footer-meta">
-          Input shape is centered and scaled. AoA is represented by body rotation.
-          {' '}
-          Model: browser inference.
-          {modelStatus === 'idle' && ' Model loads on first prediction.'}
-          {modelStatus === 'loading' && ' Downloading AI model...'}
-          {modelStatus === 'loaded' && ' Model loaded locally.'}
-          {modelStatus === 'error' &&
-            ' Browser model failed to load. Please refresh or check network.'}
-          {autoUpdateEnabled && ' Mach/AoA changes auto-update after the first predict.'}
-          {shapeDirty && prediction && ' Shape changed — click Predict to refresh.'}
+        <p>
+          Experimental AI surrogate — not a validated CFD solver. Trained on SU2 Euler
+          simulations (Mach 1.5–5, ±10° AoA). Browser-side U-Net inference; AoA is
+          applied by rotating the body mask.
         </p>
       </footer>
     </div>
